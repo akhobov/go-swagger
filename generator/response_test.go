@@ -20,6 +20,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/go-openapi/spec"
@@ -141,7 +143,8 @@ func TestInlinedSchemaResponses(t *testing.T) {
 							}
 						}
 						assert.Len(t, b.ExtraSchemas, 1)
-						assert.Equal(t, "[]*models.SuccessBodyItems0", res.Schema.GoType)
+						// ExtraSchema is not a definition: it is rendered in current operations package
+						assert.Equal(t, "[]*SuccessBodyItems0", res.Schema.GoType)
 					}
 				}
 			}
@@ -510,6 +513,73 @@ func TestGenResponses_Issue1013(t *testing.T) {
 					assertInCode(t, "Payload *models.Response `json:\"body,omitempty\"`", string(ff))
 				} else {
 					fmt.Println(buf.String())
+				}
+			}
+		}
+	}
+}
+
+func TestGenResponse_15362_SkipFlatten(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+	defer func() {
+		log.SetOutput(os.Stdout)
+	}()
+
+	fixtureConfig := map[string]map[string][]string{
+		// load expectations for parameters in operation get_nested_required_responses.go
+		"getNestedRequired": map[string][]string{ // fixture index
+			"serverResponses": []string{ // executed template
+				// expected code lines
+				`const GetNestedRequiredOKCode int = 200`,
+				`/*GetNestedRequiredOK OK`,
+				`swagger:response getNestedRequiredOK`,
+				`*/`,
+				`type GetNestedRequiredOK struct {`,
+				"	Payload [][][][]*GetNestedRequiredOKBodyItems0 `json:\"body,omitempty\"`",
+				`func NewGetNestedRequiredOK() *GetNestedRequiredOK {`,
+				`	return &GetNestedRequiredOK{`,
+				`func (o *GetNestedRequiredOK) WithPayload(payload [][][][]*GetNestedRequiredOKBodyItems0) *GetNestedRequiredOK {`,
+				`func (o *GetNestedRequiredOK) SetPayload(payload [][][][]*GetNestedRequiredOKBodyItems0) {`,
+				`func (o *GetNestedRequiredOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {`,
+			},
+			"serverOperation": []string{ // executed template
+				// expected code lines
+				`type GetNestedRequiredOKBodyItems0 struct {`,
+				"	Pkcs *string `json:\"pkcs\"`",
+				`func (o *GetNestedRequiredOKBodyItems0) Validate(formats strfmt.Registry) error {`,
+				`	if err := o.validatePkcs(formats); err != nil {`,
+				`		return errors.CompositeValidationError(res...`,
+				`func (o *GetNestedRequiredOKBodyItems0) validatePkcs(formats strfmt.Registry) error {`,
+				`	if err := validate.Required("pkcs", "body", o.Pkcs); err != nil {`,
+			},
+		},
+	}
+
+	assert := assert.New(t)
+	for fixtureIndex, fixtureContents := range fixtureConfig {
+		fixtureSpec := "fixture-1536-2-responses.yaml"
+		gen, err := opBuilder(fixtureIndex, filepath.Join("..", "fixtures", "bugs", "1536", fixtureSpec))
+		if assert.NoError(err) {
+			op, err := gen.MakeOperation()
+			if assert.NoError(err) {
+				opts := opts()
+				opts.FlattenSpec = false
+				for fixtureTemplate, expectedCode := range fixtureContents {
+					buf := bytes.NewBuffer(nil)
+					err := templates.MustGet(fixtureTemplate).Execute(buf, op)
+					if assert.NoError(err, "Expected generation to go well on %s with template %s", fixtureSpec, fixtureTemplate) {
+						ff, err := opts.LanguageOpts.FormatContent("foo.go", buf.Bytes())
+						if assert.NoError(err, "Expected formatting to go well on %s with template %s", fixtureSpec, fixtureTemplate) {
+							res := string(ff)
+							for line, codeLine := range expectedCode {
+								if !assertInCode(t, strings.TrimSpace(codeLine), res) {
+									t.Logf("Code expected did not match for fixture %s at line %d", fixtureSpec, line)
+								}
+							}
+						} else {
+							fmt.Println(buf.String())
+						}
+					}
 				}
 			}
 		}

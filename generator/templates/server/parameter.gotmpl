@@ -79,7 +79,7 @@ if err := validate.Enum(
   {{- if and (not .IsArray) (not .HasDiscriminator) (not .IsInterface) (not .IsStream) .IsNullable }}*{{ end -}} 
   {{- if .Child -}} 
     {{- if not ( hasPrefix .ValueExpression "o." ) -}} 
-    {{- .Child.ValueExpression }}C{{- if .Child.IsCustomFormatter }}.String(){{ end -}}
+    {{- .Child.ValueExpression }}C{{- if .IsCustomFormatter }}.String(){{ end -}}
     {{- else -}} 
       {{- .ValueExpression -}}{{- if .Child.IsCustomFormatter }}.String(){{ end -}}
     {{- end -}} 

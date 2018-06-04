@@ -2059,3 +2059,193 @@ func TestGenParameter_Issue1536(t *testing.T) {
 		}
 	}
 }
+
+func TestGenParameter_Issue15362(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+	defer func() {
+		log.SetOutput(os.Stdout)
+	}()
+
+	fixtureConfig := map[string]map[string][]string{
+		// load expectations for parameters in operation get_nested_required_parameters.go
+		"getNestedRequired": map[string][]string{ // fixture index
+			"serverParameter": []string{ // executed template
+				// expected code lines
+				`func NewGetNestedRequiredParams() GetNestedRequiredParams {`,
+				`	return GetNestedRequiredParams{`,
+				`type GetNestedRequiredParams struct {`,
+				"	HTTPRequest *http.Request `json:\"-\"`",
+				`	/*`,
+				`	  In: body`,
+				`	*/`,
+				`	ObjectNestedRequired [][][][]*models.GetNestedRequiredParamsBodyItemsItemsItemsItems`,
+				`func (o *GetNestedRequiredParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {`,
+				`	o.HTTPRequest = r`,
+				`	if runtime.HasBody(r) {`,
+				`		defer r.Body.Close(`,
+				`		var body [][][][]*models.GetNestedRequiredParamsBodyItemsItemsItemsItems`,
+				`		if err := route.Consumer.Consume(r.Body, &body); err != nil {`,
+				`			res = append(res, errors.NewParseError("objectNestedRequired", "body", "", err)`,
+				`		} else {`,
+				`			o.ObjectNestedRequired = body`,
+				`			if err := o.validateObjectNestedRequiredBody(route.Formats); err != nil {`,
+				`		return errors.CompositeValidationError(res...`,
+				`func (o *GetNestedRequiredParams) validateObjectNestedRequiredBody(formats strfmt.Registry) error {`,
+				`	objectNestedRequiredIC := o.ObjectNestedRequired`,
+				`	var objectNestedRequiredIR [][][][]*models.GetNestedRequiredParamsBodyItemsItemsItemsItems`,
+				`	for i, objectNestedRequiredIV := range objectNestedRequiredIC {`,
+				`		objectNestedRequiredIIC := objectNestedRequiredIV`,
+				`		if len(objectNestedRequiredIIC) > 0 {`,
+				`			var objectNestedRequiredIIR [][][]*models.GetNestedRequiredParamsBodyItemsItemsItemsItems`,
+				`			for ii, objectNestedRequiredIIV := range objectNestedRequiredIIC {`,
+				`				objectNestedRequiredIIIC := objectNestedRequiredIIV`,
+				`				if len(objectNestedRequiredIIIC) > 0 {`,
+				`					var objectNestedRequiredIIIR [][]*models.GetNestedRequiredParamsBodyItemsItemsItemsItems`,
+				`					for iii, objectNestedRequiredIIIV := range objectNestedRequiredIIIC {`,
+				`						objectNestedRequiredIIIIC := objectNestedRequiredIIIV`,
+				`						if len(objectNestedRequiredIIIIC) > 0 {`,
+				`							var objectNestedRequiredIIIIR []*models.GetNestedRequiredParamsBodyItemsItemsItemsItems`,
+				`							for iiii, objectNestedRequiredIIIIV := range objectNestedRequiredIIIIC {`,
+				`								objectNestedRequiredIIII := objectNestedRequiredIIIIV`,
+				`								if err := objectNestedRequiredIIII.Validate(formats); err != nil {`,
+				`									if ve, ok := err.(*errors.Validation); ok {`,
+				`										return ve.ValidateName(fmt.Sprintf("%s.%v", fmt.Sprintf("%s.%v", fmt.Sprintf("%s.%v", fmt.Sprintf("%s.%v", "objectNestedRequired", i), ii), iii), iiii)`,
+				`								objectNestedRequiredIIIIR = append(objectNestedRequiredIIIIR, objectNestedRequiredIIII`,
+				`							objectNestedRequiredIIIR = append(objectNestedRequiredIIIR, objectNestedRequiredIIIIR`,
+				`					objectNestedRequiredIIR = append(objectNestedRequiredIIR, objectNestedRequiredIIIR`,
+				`			objectNestedRequiredIR = append(objectNestedRequiredIR, objectNestedRequiredIIR`,
+				`	o.ObjectNestedRequired = objectNestedRequiredIR`,
+			},
+		},
+	}
+
+	assert := assert.New(t)
+	for fixtureIndex, fixtureContents := range fixtureConfig {
+		fixtureSpec := "fixture-1536-2.yaml"
+		gen, err := opBuilderWithFlatten(fixtureIndex, filepath.Join("..", "fixtures", "bugs", "1536", fixtureSpec))
+		if assert.NoError(err) {
+			op, err := gen.MakeOperation()
+			if assert.NoError(err) {
+				opts := opts()
+				opts.FlattenSpec = true
+				for fixtureTemplate, expectedCode := range fixtureContents {
+					buf := bytes.NewBuffer(nil)
+					err := templates.MustGet(fixtureTemplate).Execute(buf, op)
+					if assert.NoError(err, "Expected generation to go well on %s with template %s", fixtureSpec, fixtureTemplate) {
+						ff, err := opts.LanguageOpts.FormatContent("foo.go", buf.Bytes())
+						if assert.NoError(err, "Expected formatting to go well on %s with template %s", fixtureSpec, fixtureTemplate) {
+							res := string(ff)
+							for line, codeLine := range expectedCode {
+								if !assertInCode(t, strings.TrimSpace(codeLine), res) {
+									t.Logf("Code expected did not match for fixture %s at line %d", fixtureSpec, line)
+								}
+							}
+						} else {
+							fmt.Println(buf.String())
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestGenParameter_Issue15362_SkipFlatten(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
+	defer func() {
+		log.SetOutput(os.Stdout)
+	}()
+
+	fixtureConfig := map[string]map[string][]string{
+		// load expectations for parameters in operation get_nested_required_parameters.go
+		"getNestedRequired": map[string][]string{ // fixture index
+			"serverParameter": []string{ // executed template
+				// expected code lines
+				`func NewGetNestedRequiredParams() GetNestedRequiredParams {`,
+				`	return GetNestedRequiredParams{`,
+				`type GetNestedRequiredParams struct {`,
+				"	HTTPRequest *http.Request `json:\"-\"`",
+				`	/*`,
+				`	  In: body`,
+				`	*/`,
+				`	ObjectNestedRequired [][][][]*GetNestedRequiredParamsBodyItems0`,
+				`func (o *GetNestedRequiredParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {`,
+				`	o.HTTPRequest = r`,
+				`	if runtime.HasBody(r) {`,
+				`		defer r.Body.Close(`,
+				`		var body [][][][]*GetNestedRequiredParamsBodyItems0`,
+				`		if err := route.Consumer.Consume(r.Body, &body); err != nil {`,
+				`			res = append(res, errors.NewParseError("objectNestedRequired", "body", "", err)`,
+				`		} else {`,
+				`			o.ObjectNestedRequired = body`,
+				`			if err := o.validateObjectNestedRequiredBody(route.Formats); err != nil {`,
+				`		return errors.CompositeValidationError(res...`,
+				`func (o *GetNestedRequiredParams) validateObjectNestedRequiredBody(formats strfmt.Registry) error {`,
+				`	objectNestedRequiredIC := o.ObjectNestedRequired`,
+				`	var objectNestedRequiredIR [][][][]*GetNestedRequiredParamsBodyItems0`,
+				`	for i, objectNestedRequiredIV := range objectNestedRequiredIC {`,
+				`		objectNestedRequiredIIC := objectNestedRequiredIV`,
+				`		if len(objectNestedRequiredIIC) > 0 {`,
+				`			var objectNestedRequiredIIR [][][]*GetNestedRequiredParamsBodyItems0`,
+				`			for ii, objectNestedRequiredIIV := range objectNestedRequiredIIC {`,
+				`				objectNestedRequiredIIIC := objectNestedRequiredIIV`,
+				`				if len(objectNestedRequiredIIIC) > 0 {`,
+				`					var objectNestedRequiredIIIR [][]*GetNestedRequiredParamsBodyItems0`,
+				`					for iii, objectNestedRequiredIIIV := range objectNestedRequiredIIIC {`,
+				`						objectNestedRequiredIIIIC := objectNestedRequiredIIIV`,
+				`						if len(objectNestedRequiredIIIIC) > 0 {`,
+				`							var objectNestedRequiredIIIIR []*GetNestedRequiredParamsBodyItems0`,
+				`							for iiii, objectNestedRequiredIIIIV := range objectNestedRequiredIIIIC {`,
+				`								objectNestedRequiredIIII := objectNestedRequiredIIIIV`,
+				`								if err := objectNestedRequiredIIII.Validate(formats); err != nil {`,
+				`									if ve, ok := err.(*errors.Validation); ok {`,
+				`										return ve.ValidateName(fmt.Sprintf("%s.%v", fmt.Sprintf("%s.%v", fmt.Sprintf("%s.%v", fmt.Sprintf("%s.%v", "objectNestedRequired", i), ii), iii), iiii)`,
+				`								objectNestedRequiredIIIIR = append(objectNestedRequiredIIIIR, objectNestedRequiredIIII`,
+				`							objectNestedRequiredIIIR = append(objectNestedRequiredIIIR, objectNestedRequiredIIIIR`,
+				`					objectNestedRequiredIIR = append(objectNestedRequiredIIR, objectNestedRequiredIIIR`,
+				`			objectNestedRequiredIR = append(objectNestedRequiredIR, objectNestedRequiredIIR`,
+				`	o.ObjectNestedRequired = objectNestedRequiredIR`,
+			},
+			"serverOperation": []string{ // executed template
+				// expected code lines
+				`type GetNestedRequiredParamsBodyItems0 struct {`,
+				"	Pkcs *string `json:\"pkcs\"`",
+				`func (o *GetNestedRequiredParamsBodyItems0) Validate(formats strfmt.Registry) error {`,
+				`	if err := o.validatePkcs(formats); err != nil {`,
+				`		return errors.CompositeValidationError(res...`,
+				`func (o *GetNestedRequiredParamsBodyItems0) validatePkcs(formats strfmt.Registry) error {`,
+				`	if err := validate.Required("pkcs", "body", o.Pkcs); err != nil {`,
+			},
+		},
+	}
+
+	assert := assert.New(t)
+	for fixtureIndex, fixtureContents := range fixtureConfig {
+		fixtureSpec := "fixture-1536-2.yaml"
+		gen, err := opBuilder(fixtureIndex, filepath.Join("..", "fixtures", "bugs", "1536", fixtureSpec))
+		if assert.NoError(err) {
+			op, err := gen.MakeOperation()
+			if assert.NoError(err) {
+				opts := opts()
+				opts.FlattenSpec = false
+				for fixtureTemplate, expectedCode := range fixtureContents {
+					buf := bytes.NewBuffer(nil)
+					err := templates.MustGet(fixtureTemplate).Execute(buf, op)
+					if assert.NoError(err, "Expected generation to go well on %s with template %s", fixtureSpec, fixtureTemplate) {
+						ff, err := opts.LanguageOpts.FormatContent("foo.go", buf.Bytes())
+						if assert.NoError(err, "Expected formatting to go well on %s with template %s", fixtureSpec, fixtureTemplate) {
+							res := string(ff)
+							for line, codeLine := range expectedCode {
+								if !assertInCode(t, strings.TrimSpace(codeLine), res) {
+									t.Logf("Code expected did not match for fixture %s at line %d", fixtureSpec, line)
+								}
+							}
+						} else {
+							fmt.Println(buf.String())
+						}
+					}
+				}
+			}
+		}
+	}
+}

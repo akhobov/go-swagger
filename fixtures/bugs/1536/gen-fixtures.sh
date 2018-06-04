@@ -7,9 +7,13 @@ continueOnError=
 # Fixtures with models only
 testcases="${testcases} fixture-1536.yaml"
 testcases="${testcases} fixture-1536-2.yaml"
+testcases="${testcases} fixture-1536-2-responses.yaml"
+testcases="${testcases} ../../codegen/instagram.yml"
+testcases="${testcases} ../../codegen/todolist.responses.yml"
+testcases="${testcases} fixture-1536-models.yaml"
 #export SWAGGER_DEBUG=1
-#for opts in  "" "--skip-flatten" ; do
-for opts in  "" ; do
+for opts in  "" "--skip-flatten" ; do
+#for opts in  "" ; do
 for testcase in ${testcases} ; do
     grep -q discriminator ${testcase}
     discriminated=$?
