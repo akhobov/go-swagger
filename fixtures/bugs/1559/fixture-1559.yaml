@@ -1,0 +1,64 @@
+swagger: "2.0"
+info:
+  title: "gen operations with models, --skip-flatten mode"
+  version: "0.0.1"
+  description: "repro issue 1559"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+paths:
+  /getSimple:
+    get:
+      operationId: getSimple
+      responses:
+        200:
+          description: "OK"
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/SimpleObject"
+  /getFull/{id}:
+    get:
+      operationId: getFull
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+          format: uuid4
+      responses:
+        200:
+          description: "OK"
+          schema:
+            $ref: "#/definitions/FullObject"
+definitions:
+  Data:
+    type: object
+    properties:
+      data1:
+        type: string
+      data2:
+        type: string
+  SimpleObject:
+    type: object
+    required:
+      - id
+      - name
+    properties:
+      id:
+        type: string
+        format: uuid4
+      name:
+        type: string
+      data:
+        $ref: '#/definitions/Data'
+  FullObject:
+    type: object
+    allOf:
+      - $ref: '#/definitions/SimpleObject'
+      - type: object
+        properties:
+          additional:
+            type: integer
+          flag:
+            type: boolean
